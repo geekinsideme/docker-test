@@ -1,0 +1,53 @@
+version: '3.1'
+services:
+
+  redmine:
+    container_name: redmine
+    build: ./redmine
+    restart: always
+    image: redmine:3.4
+    ports:
+      - 1080:3000
+    environment:
+      REDMINE_DB_MYSQL: db
+      REDMINE_DB_PASSWORD: password
+    depends_on:
+      - db
+
+  db:
+    container_name: db
+    restart: always
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: redmine
+
+  gitlab:
+    container_name: gitlab
+    image: 'gitlab/gitlab-ce:latest'
+    restart: always
+    environment:
+       GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://localhost/gitlab'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2022
+    ports:
+      - '2080:80'
+      - '2022:22'
+    # volumes:
+    #   - '/srv/gitlab/config:/etc/gitlab'
+    #   - '/srv/gitlab/logs:/var/log/gitlab'
+    #   - '/srv/gitlab/data:/var/opt/gitlab'
+
+  nginx:
+    container_name: nginx
+    # restart: always
+    image: nginx:alpine
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx_reverseproxy.conf:/etc/nginx/nginx.conf:ro
+    links:
+      - redmine
+      - gitlab
+    #for debug
+    #command: [nginx-debug, '-g', 'daemon off;']
